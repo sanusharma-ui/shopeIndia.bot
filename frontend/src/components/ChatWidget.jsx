@@ -1,14 +1,16 @@
 import { useEffect, useRef, useState } from "react";
 import "./ChatWidget.css";
+import logo from "../assets/shopeIndia.png";
 
 const API_URL =
-  import.meta.env.VITE_CHATBOT_API_URL || "http://127.0.0.1:8000/chat";
+  import.meta.env.VITE_CHATBOT_API_URL ||
+  "https://shopeindia-chatbot-backend.onrender.com/chat";
 
 const quickActions = [
-  "Hijama suction gun under 300",
+  "Hijama suction gun under ₹300",
   "Best derma pen",
-  "Massage tools suggest karo",
-  "Clinic gloves chahiye",
+  "Suggest massage tools",
+  "Clinic gloves",
   "Contact support",
 ];
 
@@ -39,6 +41,15 @@ function ChatWidget() {
 
   function scrollToBottom() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }
+
+  function getProductUrl(url, productName) {
+    if (url && (url.startsWith("http://") || url.startsWith("https://"))) {
+      return url;
+    }
+
+    const searchQuery = encodeURIComponent(productName || "");
+    return `https://shopeindia.co.in/shop?search=${searchQuery}`;
   }
 
   async function sendMessage(customMessage) {
@@ -81,7 +92,7 @@ function ChatWidget() {
           role: "bot",
           text:
             data.reply ||
-            "Sorry, mujhe proper answer nahi mila. Please try again.",
+            "Sorry, I could not generate a proper answer. Please try again.",
           products: data.products || [],
         },
       ]);
@@ -91,7 +102,7 @@ function ChatWidget() {
         {
           role: "bot",
           text:
-            "Backend se connect nahi ho pa raha.\nPlease check karo ki server running hai ya nahi.",
+            "I’m unable to connect to the backend right now.\nPlease check if the server is running.",
           products: [],
         },
       ]);
@@ -123,7 +134,12 @@ function ChatWidget() {
           onClick={() => setIsOpen(true)}
           aria-label="Open ShopeIndia chat"
         >
-          <span className="chat-toggle-icon">💬</span>
+          <img
+            className="chat-toggle-logo"
+            src={logo}
+            alt="Open ShopeIndia chat"
+          />
+          <span className="chat-toggle-pulse"></span>
         </button>
       )}
 
@@ -131,7 +147,9 @@ function ChatWidget() {
         <section className="chat-widget">
           <header className="chat-header">
             <div className="brand-block">
-              <div className="brand-avatar">S</div>
+              <div className="brand-avatar">
+                <img src={logo} alt="ShopeIndia Logo" />
+              </div>
 
               <div>
                 <strong>ShopeIndia Assistant</strong>
@@ -159,7 +177,9 @@ function ChatWidget() {
                 }
               >
                 {message.role === "bot" && (
-                  <div className="small-avatar">S</div>
+                  <div className="small-avatar">
+                    <img src={logo} alt="ShopeIndia Logo" />
+                  </div>
                 )}
 
                 <div className="message-content">
@@ -200,16 +220,17 @@ function ChatWidget() {
                             )}
                           </div>
 
-                          {product.product_url && (
-                            <a
-                              href={product.product_url}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="product-link"
-                            >
-                              View Product →
-                            </a>
-                          )}
+                          <a
+                            href={getProductUrl(
+                              product.product_url,
+                              product.name
+                            )}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="product-link"
+                          >
+                            View Product →
+                          </a>
                         </article>
                       ))}
                     </div>
@@ -230,7 +251,9 @@ function ChatWidget() {
 
             {isTyping && (
               <div className="message-row bot-row">
-                <div className="small-avatar">S</div>
+                <div className="small-avatar">
+                  <img src={logo} alt="ShopeIndia Logo" />
+                </div>
 
                 <div className="typing-bubble">
                   <span></span>
