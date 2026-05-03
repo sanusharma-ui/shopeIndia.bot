@@ -4,7 +4,8 @@ import logo from "../assets/shopeIndia.png";
 
 const API_URL =
   import.meta.env.VITE_CHATBOT_API_URL ||
-  "https://shopeindia-chatbot-backend.onrender.com/chat";
+  // "https://shopeindia-chatbot-backend.onrender.com/chat";
+  "http://localhost:8000/chat";
 
 const quickActions = [
   "Hijama suction gun under ₹300",

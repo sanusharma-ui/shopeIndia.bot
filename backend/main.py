@@ -57,6 +57,15 @@ def health_check():
     }
 
 
+@app.get("/health")
+def health():
+    return {
+        "status": "ok",
+        "message": "Backend is alive",
+        "uptime_seconds": round(time.time() - START_TIME, 2)
+    }
+
+
 @app.get("/products")
 def get_products(category: str | None = None, q: str | None = None):
     if q:

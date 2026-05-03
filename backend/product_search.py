@@ -65,7 +65,7 @@ def product_search_text(product: dict) -> str:
     )
 
 
-def search_products(query: str, limit: int = 6) -> list[dict]:
+def search_products(query: str, limit: int = 3) -> list[dict]:
     query = query.strip()
 
     if not query:
