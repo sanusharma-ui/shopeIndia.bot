@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from cache import response_cache
 from config import settings
 from gemini_client import ask_gemini
+from groq_client import ask_groq
 from product_data import PRODUCTS
 from product_search import search_products, format_products_for_prompt
 from rate_limiter import check_rate_limit
@@ -28,7 +29,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="ShopeIndia AI Chatbot",
-    version="2.0.0",
+    version="2.1.0",
     lifespan=lifespan
 )
 
@@ -69,9 +70,10 @@ def health():
 @app.get("/products")
 def get_products(category: str | None = None, q: str | None = None):
     if q:
+        searched_products = search_products(q, limit=20)
         return {
-            "count": len(search_products(q, limit=20)),
-            "products": search_products(q, limit=20)
+            "count": len(searched_products),
+            "products": searched_products
         }
 
     if category:
@@ -100,6 +102,45 @@ def get_categories():
     }
 
 
+async def generate_ai_reply(user_message: str, product_context: str) -> str:
+    """
+    First try Gemini.
+    If Gemini fails/quota ends, try Groq.
+    If Groq also fails or key is missing, raise error to main chat handler.
+    """
+
+    try:
+        print("Trying Gemini...")
+        reply = await ask_gemini(
+            user_message=user_message,
+            product_context=product_context
+        )
+
+        if reply and reply.strip():
+            return reply
+
+        raise RuntimeError("Gemini returned empty response")
+
+    except Exception as gemini_error:
+        print("Gemini error:", str(gemini_error))
+
+        try:
+            print("Trying Groq fallback...")
+            reply = await ask_groq(
+                user_message=user_message,
+                product_context=product_context
+            )
+
+            if reply and reply.strip():
+                return reply
+
+            raise RuntimeError("Groq returned empty response")
+
+        except Exception as groq_error:
+            print("Groq error:", str(groq_error))
+            raise RuntimeError("All AI providers failed")
+
+
 @app.post("/chat", response_model=ChatResponse)
 async def chat(request_data: ChatRequest, request: Request):
     check_rate_limit(request)
@@ -119,23 +160,33 @@ async def chat(request_data: ChatRequest, request: Request):
     product_context = format_products_for_prompt(matched_products)
 
     try:
-        reply = await ask_gemini(
+        reply = await generate_ai_reply(
             user_message=user_message,
             product_context=product_context
         )
+
     except Exception as error:
-        print("Gemini error:", str(error))
+        print("AI fallback error:", str(error))
 
         if matched_products:
-            reply = "Mujhe matching products mil gaye hain, but AI response generate nahi ho pa raha. Ye options dekh sakte ho:"
+            reply = (
+                "AI response abhi available nahi hai 😅\n\n"
+                "But maine kuch relevant products dhundh liye hain 👇"
+            )
         else:
-            reply = "Sorry, abhi AI service connect nahi ho pa rahi. Please ShopeIndia support se contact karein: +91 7385743121"
+            reply = (
+                "Sorry, abhi AI service temporarily available nahi hai.\n"
+                "Please ShopeIndia support se contact karein: +91 7385743121"
+            )
 
     product_cards = [ProductCard(**product) for product in matched_products]
 
     response_payload = {
         "reply": reply,
-        "products": [json.loads(card.model_dump_json()) for card in product_cards]
+        "products": [
+            json.loads(card.model_dump_json())
+            for card in product_cards
+        ]
     }
 
     response_cache.set(cache_key, response_payload)
