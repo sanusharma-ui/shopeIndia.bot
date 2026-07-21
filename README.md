@@ -698,7 +698,7 @@ The key should never be committed to GitHub or shared inside frontend code.
 
 ## Built By
 
-Built by **Sanu Sharma**
+Built by **shams khan**
 
 AI & Python Developer
 React • FastAPI • Gemini API • AI Systems
